@@ -1,0 +1,61 @@
+﻿
+@model LoginViewModel
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<style>
+    #loginDiv{
+        position: absolute;
+        left: 40%;
+        top: 40%;
+        border: 1px solid;
+        padding: 10px 10px;
+        border-radius: 10px;
+        width: 300px;
+    }
+    .field-validation-error {
+        color: red;
+    }
+</style>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <link href="~/lib/bootstrap/dist/css/bootstrap.css" rel="stylesheet" type="text/css" />
+    <title>Index</title>
+</head>
+<body>
+    <div id="loginDiv">
+        <form action="/Login/Authorize" method="post">
+            <div class="form-group">
+                <label for="username">User Name</label>
+                <input type="text" class="form-control" id="username" name="UserName">
+                @Html.ValidationMessageFor(model => model.UserName)
+            </div>
+            <div class="form-group">
+                <label for="exampleInputPassword1">Password</label>
+                <input type="password" class="form-control" id="Passwordbx" placeholder="Password" name="Password">
+                @Html.ValidationMessageFor(model => model.Password)
+            </div>
+            <div class="form-group">
+                <label class="field-validation-error">@Html.DisplayFor(model => model.LoginErrorMessage)</label>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+            <input type="button" id="clear" class="btn btn-secondary" value="Clear">
+        </form>
+
+        <script src="~/lib/jquery/dist/jquery.min.js"></script>
+        <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+        <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    </div>
+</body>
+</html>
+
+<script>
+    $("#clear").on("click", function () {
+        $("#Passwordbx").val("");
+        $("#username").val("");
+    });
+</script>

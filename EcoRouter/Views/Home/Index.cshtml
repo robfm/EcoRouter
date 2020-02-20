@@ -1,0 +1,389 @@
+﻿
+@{
+
+}
+
+@model RouteViewModel
+<style>
+    table {
+        border-collapse: collapse;
+        border: 1px solid black;
+    }
+
+    /* Chrome, Safari, Edge, Opera */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    /* Firefox */
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+
+    #table_sec {
+        margin-top: 30px;
+    }
+
+    #tableRoutes {
+        margin: auto;
+        border: 1px solid black;
+        table-layout: fixed;
+        width: 80%;
+        margin-top: 10px;
+    }
+
+    th, tr, td {
+        text-align: center;
+        border: 1px solid black;
+    }
+
+    th {
+        background-color: #e6e2e2
+    }
+
+    h4 {
+        margin: auto;
+    }
+</style>
+<div>
+    <div class="row">
+        <div id="current" style="width: 30%; height: auto" class="align-self-center">
+            <form>
+                <div class="form-group col-md-8">
+                    <label for="carconsumption">Car Fuel Consumption </label>
+                    <input type="number" class="form-control requiredfields" id="carconsumption">
+                </div>
+                <div class="form-group col-md-8">
+                    <label for="enginestart">Engine Start Effort</label>
+                    <input type="number" class="form-control requiredfields" id="enginestart">
+                </div>
+                <div class="form-group col-md-12">
+                    <button type="button" class="btn btn-primary" id="calculate" data-id="">Calculate</button>
+                    <button type="button" class="btn btn-secondary" id="clear">Clear</button>
+                </div>
+            </form>
+        </div>
+        <div id="dvMap" style="width: 70%; height: 500px;"></div>
+    </div>
+    <div class="row" id="table_sec">
+        <h4>List of Recorded Routes</h4>
+        <table id="tableRoutes">
+            <tr>
+                <th>Latitude A</th>
+                <th>Longitude A</th>
+                <th>Latitude B</th>
+                <th>Longitude B</th>
+                <th>Created Date</th>
+                <th>Fuel Estimation</th>
+                <th>Distance</th>
+                <th></th>
+            </tr>
+            @{foreach (var route in Model._routes)
+                {
+                    var destPoint = Model._points.First(a => a.MarkID == route.DestinationId);
+                    var departPoint = Model._points.First(a => a.MarkID == route.DepartureId);
+                    <tr>
+                        <td>@departPoint.Latitude</td>
+                        <td>@departPoint.Longitude</td>
+                        <td>@destPoint.Latitude</td>
+                        <td>@destPoint.Longitude</td>
+                        <td>@route.CreatedAt</td>
+                        <td>@route.FuelEstimation</td>
+                        <td>@route.Distance</td>
+                        <td><form><input type="button" value="EDIT" style="width:80%" id="@route.RouteID" class="btn_edit"></form></td>
+                    </tr>
+                }
+            }
+        </table>
+    </div>
+</div>
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDrEqgXfJgJpTutwQSThg65LLedmXE1uFo"></script>
+<script type="text/javascript">
+
+    let map;
+
+    let distance = 0;
+
+    let _points = [];
+
+    let markersArray = [];
+
+    let directionsRenderer = new google.maps.DirectionsRenderer();
+
+    window.onload = function () {
+
+        let mapOptions = {
+            center: new google.maps.LatLng(50.84, 4.34),
+            zoom: 10,
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+        };
+
+        map = new google.maps.Map(document.getElementById("dvMap"), mapOptions);
+
+        map.addListener('click', function (e) {
+            console.log(e);
+            if (markersArray.length < 2) addMarker(e.latLng);
+        });
+
+        directionsRenderer.setMap(map);
+
+        ValidateFields();
+    }
+
+    function addMarker(latLng) {
+        let marker = new google.maps.Marker({
+            map: map,
+            position: latLng
+        });
+
+        markersArray.push(marker);
+        _points.push({
+            MarkID: "",
+            Longitude: marker.getPosition().lng().toFixed(6).toString(),
+            Latitude: marker.getPosition().lat().toFixed(6).toString()
+        });
+
+        ValidateFields();
+    }
+
+    function ClearMap() {
+
+        markersArray = [];
+
+        let mapOptions = {
+            center: new google.maps.LatLng(_points[0].Latitude, _points[0].Longitude),
+            zoom: 12,
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+        };
+
+        map = new google.maps.Map(document.getElementById("dvMap"), mapOptions);
+
+        map.addListener('click', function (e) {
+            console.log(e);
+            if (markersArray.length < 2) addMarker(e.latLng);
+        });
+
+        directionsRenderer = new google.maps.DirectionsRenderer();
+
+        directionsRenderer.setMap(map);
+
+        _points = [];
+
+        $(".requiredfields").val("");
+        $("#calculate").data("id", "");
+
+        ValidateFields();
+    }
+
+    function Calculate() {
+
+        let carConsumption = parseFloat($("#carconsumption").val());
+        let engineStart = parseFloat($("#enginestart").val());
+
+        let calc = Round2decimals((distance * carConsumption + engineStart) / 1000);
+        let roundDist = Round2decimals(distance / 1000);
+
+        let id = $("#calculate").data("id");
+
+        if (id != "") {
+            var row = $("#" + id).closest('tr');
+            row.find("td").eq(0).html(_points[0].Latitude);
+            row.find("td").eq(1).html(_points[0].Longitude);
+            row.find("td").eq(2).html(_points[1].Latitude);
+            row.find("td").eq(3).html(_points[1].Longitude);
+            row.find("td").eq(5).html(calc);
+            row.find("td").eq(6).html(roundDist);
+        }
+        else {
+
+            $("#calculate").data("id", createUUID());
+
+            var date = new Date().toLocaleString();
+
+            var row = '<tr><td>LatitudeA</td><td>LongitudeA</td><td>LatitudeB</td><td>LongitudeB</td><td>Created</td><td>Fuel</td><td>Distance</td><td><form><input type="button" value="EDIT" style="width:80%" id="RouteID" class="btn_edit"></form></td></tr>';
+            row = row.replace("LatitudeA", _points[0].Latitude);
+            row = row.replace("LongitudeA", _points[0].Longitude);
+            row = row.replace("LatitudeB", _points[1].Latitude);
+            row = row.replace("LongitudeB", _points[1].Longitude);
+            row = row.replace("Created", date);
+            row = row.replace("Fuel", calc);
+            row = row.replace("Distance", roundDist);
+            row = row.replace("RouteID", $("#calculate").data("id"));
+
+            $('#tableRoutes > tbody:last-child').append(row);
+
+            $(".btn_edit").unbind().on("click", function (e) { Edit(e); });
+
+        }
+
+         var route = new function () {
+                this.RouteID = $("#calculate").data("id"),
+                this.Distance = roundDist.toString(),
+                this.FuelEstimation = calc.toString(),
+                this.DepartureId = "",
+                this.DestinationId = "",
+                this.CreatedBy = "",
+                this.CreatedAt = "",
+                this.ModifiedBy = "",
+                this.ModifiedAt = "",
+                this.IsActive = true
+        }
+
+        $.ajax({
+            url: "@Url.Action("SaveRoute")",
+            type: 'POST',
+            datatype: 'json',
+            data: { _points, route },
+            success: function (data) {
+                console.log(data.d);
+            }
+        });
+
+        $("#calculate").data("id", "");
+    }
+
+    function Round2decimals(num) {
+        return Math.round((num + 0.00001) * 100) / 100;
+    }
+
+    function ValidateFields() {
+
+        let empty = false;
+        $(".requiredfields").each(function () {
+            if ($(this).val() == "" || _points.length < 2) {
+                empty = true;
+                return false;
+            }
+        });
+
+        if (empty)
+            $("#calculate").prop("disabled", true);
+        else
+            $("#calculate").prop("disabled", false);
+    }
+
+    function displayRouteData(response, status) { // anonymous function to capture directions
+        if (status !== 'OK') {
+            window.alert('Directions request failed due to ' + status);
+            return;
+        } else {
+            directionsRenderer.setDirections(response); // Add route to the map
+            var directionsData = response.routes[0].legs[0]; // Get data about the mapped route
+            if (!directionsData) {
+                window.alert('Directions request failed');
+                return;
+            }
+            else {
+                distance = directionsData.distance.value;
+
+                Calculate();
+            }
+        }
+    }
+
+    function Edit(e) {
+
+        let id = e.currentTarget.id;
+
+        $("#calculate").data("id", id);
+
+        $(".requiredfields").val(null);
+
+        markersArray = [];
+        _points = [];
+
+        var row = $("#"+id).closest('tr');
+        var latA = parseFloat(row.find("td").eq(0).html().replace(",", "."));
+        var longA = parseFloat(row.find("td").eq(1).html().replace(",", "."));
+        var latB = parseFloat(row.find("td").eq(2).html().replace(",", "."));
+        var longB = parseFloat(row.find("td").eq(3).html().replace(",", "."));
+
+        var mapOptions = {
+            center: new google.maps.LatLng(latA, longA),
+            zoom: 12,
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+        };
+
+        map = new google.maps.Map(document.getElementById("dvMap"), mapOptions);
+
+        var myLatlng = new google.maps.LatLng(latA, longA);
+        var markerA = new google.maps.Marker({
+            position: myLatlng,
+            map: map
+        });
+
+        _points.push({
+            MarkID: "",
+            Longitude: longA.toString(),
+            Latitude: latA.toString()
+        });
+        markersArray.push(markerA);
+
+        var myLatlng = new google.maps.LatLng(latB, longB);
+        var markerB = new google.maps.Marker({
+            position: myLatlng,
+            map: map
+        });
+
+        _points.push({
+            MarkID: "",
+            Longitude: longB.toString(),
+            Latitude: latB.toString()
+        });
+        markersArray.push(markerB);
+
+        google.maps.event.addListener(markerA, 'dragend', function (evt) {
+            _points[0].Longitude = evt.latLng.lng().toFixed(6).toString();
+            _points[0].Latitude = evt.latLng.lat().toFixed(6).toString();
+        });
+
+        google.maps.event.addListener(markerB, 'dragend', function (evt) {
+            _points[1].Longitude = evt.latLng.lng().toFixed(6).toString();
+            _points[1].Latitude = evt.latLng.lat().toFixed(6).toString();
+        });
+
+        
+        directionsRenderer = new google.maps.DirectionsRenderer();
+        directionsRenderer.setMap(map);
+
+        ValidateFields();
+    }
+
+    function createUUID() {
+
+        var s = [];
+        var hexDigits = "0123456789abcdef";
+        for (var i = 0; i < 36; i++) {
+            s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
+        }
+        s[14] = "4";  // bits 12-15 of the time_hi_and_version field to 0010
+        s[19] = hexDigits.substr((s[19] & 0x3) | 0x8, 1);  // bits 6-7 of the clock_seq_hi_and_reserved to 01
+        s[8] = s[13] = s[18] = s[23] = "-";
+
+        var uuid = s.join("");
+        return uuid;
+    }
+
+    $(".requiredfields").on("input", function (e) { ValidateFields(); });
+
+    $("#calculate").on("click", function (e) {
+
+        const routeM = {
+            origin: new google.maps.LatLng(_points[0].Latitude, _points[0].Longitude),
+            destination: new google.maps.LatLng(_points[1].Latitude, _points[1].Longitude),
+            travelMode: 'DRIVING'
+        };
+
+        let directionsService = new google.maps.DirectionsService();
+        directionsService.route(routeM, displayRouteData);
+
+    });
+
+    $("#clear").on("click", function (e) { ClearMap(); });
+
+    $(".btn_edit").on("click", function (e) { Edit(e); });
+
+</script>

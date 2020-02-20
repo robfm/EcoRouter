@@ -1,0 +1,52 @@
+﻿
+@{
+    Layout = Layout;
+}
+
+@model ReportViewModel
+
+<style>
+    #tableReport {
+        margin: auto;
+        border: 1px solid black;
+        table-layout: fixed;
+        width: 50%;
+    }
+
+    th, tr, td {
+        text-align: center;
+        border: 1px solid black;
+    }
+
+    th {
+        background-color: #e6e2e2
+    }
+
+    h4 {
+        text-align: center;
+        margin: auto;
+    }
+</style>
+<div class="row">
+    <h4>Summary of estimations per day</h4>
+</div>
+<div class="row" style="margin-top:10px">
+
+    <table id="tableReport">
+        <tr>
+            <th>Date</th>
+            <th>Total Distance</th>
+            <th>Total Fuel Consumption</th>
+        </tr>
+        @{foreach (var item in Model.totals)
+            {
+                <tr>
+                    <td>@item.Date.ToString("dd/MM/yyyy")</td>
+                    <td>@item.TotalDistance</td>
+                    <td>@item.TotalFuelEstimation</td>
+                </tr>
+            }
+        }
+    </table>
+</div>
+
